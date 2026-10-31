@@ -184,6 +184,6 @@ def run_voice_mode():
 if __name__ == "__main__":
     mode = sys.argv[1].lower() if len(sys.argv) > 1 else RUN_MODE
     if mode == "voice":
-        run_voice_mode()
+        print("Mode suara dinonaktifkan (sengaja, demi keamanan). Pakai gui.py atau main.py text.")
     else:
         run_text_mode()

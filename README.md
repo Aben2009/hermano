@@ -1,126 +1,102 @@
-# Hermano — Asisten AI Pribadi ala JARVIS
+# Hermano - Asisten AI Pribadi
 
-Hermano bisa ngobrol (teks/suara), buka & tutup aplikasi, jalanin command, kelola file,
-cek status laptop, pasang timer, cari di web, dan inget hal penting tentang kamu.
+Asisten AI yang jalan **lokal di laptop sendiri** (lewat Ollama), dengan tampilan ala ChatGPT.
+Hermano bisa mengontrol laptop, mencari info di internet, membaca dokumen, memantau keamanan,
+dan memasang pengingat, tapi **setiap aksi berisiko tetap harus disetujui pemiliknya**.
 
-**Kontrol tetap di tangan kamu:**
+> Dibangun sebagai proyek belajar AI & cybersecurity. Kode dikembangkan dengan bantuan AI
+> (Claude) sebagai mentor; desain, pengujian, debugging, dan keputusan dilakukan sendiri.
+
+## Fitur
+
+| Fitur | Keterangan |
+|---|---|
+| Tampilan aplikasi | Jendela ala ChatGPT: riwayat chat di sidebar, dibuka lewat ikon di Desktop/Start Menu |
+| Otak lokal | Ollama (`qwen2.5:14b` saat dicas, `qwen2.5:7b` saat baterai - ganti otomatis) |
+| Kontrol laptop | Buka/tutup aplikasi (termasuk dari Start Menu), folder & file, status baterai/CPU/jaringan |
+| Internet | Cari berita & web (DuckDuckGo/Bing, tanpa API key), baca artikel, buka hasil di browser |
+| Dokumen | Cari file di laptop, baca & rangkum PDF, Word (.docx), PowerPoint (.pptx), teks |
+| Keamanan | Status Windows Defender, ancaman terdeteksi/diizinkan, cek proses & startup mencurigakan, Quick Scan, penjaga otomatis tiap 10 menit |
+| Pengingat | Tersimpan di database, tetap ada walau Hermano ditutup; yang terlewat diberitahukan |
+| Briefing harian | Keamanan, laptop, internet, pengingat, berita, dan ringkasan aksi kemarin |
+| Riwayat aksi | Semua yang pernah dilakukan Hermano, diambil dari catatan audit asli |
+
+## Lapisan keamanan
+
 | Lapisan | Cara kerja |
 |---|---|
-| Aktivasi | Hermano cuma "bangun" kalau kamu tekan Enter (push-to-talk) atau panggil wake word |
-| Izin aksi | Aksi berisiko (command, timpa/hapus file, tutup app, sleep) **wajib** kamu setujui. Ini dicek oleh kode, AI tidak bisa melewatinya |
-| Blokir total | Format disk, diskpart, hapus registry, dll ditolak walaupun kamu setuju |
-| Bisa di-undo | Hapus file = pindah ke Recycle Bin, bukan hapus permanen |
-| Audit | Semua aksi + keputusan kamu tercatat di `memory_data/hermano.db` (tabel `actions`) |
-| Strict mode | `STRICT_MODE=true` → buka app/website pun harus minta izin |
+| Gerbang izin | Aksi berisiko (command, timpa/hapus file, tutup aplikasi, dll) muncul sebagai pop-up **Setujui / Tolak**. Dicek oleh kode, AI tidak bisa melewatinya |
+| Blokir total | Format disk, diskpart, hapus registry, dll ditolak walaupun disetujui |
+| Mode waspada | Setelah membaca konten luar (internet/dokumen), **semua** aksi wajib izin - melindungi dari prompt injection |
+| Satpam anti-klaim palsu | Kalau AI bilang "sudah dikerjakan" tanpa benar-benar memanggil tool, kode menegur dan memberi label peringatan |
+| Verifikasi aksi | Setelah aksi, kode mengecek hasil nyatanya (aplikasi benar jalan, folder benar ada, dll) |
+| Tolak URL palsu | URL karangan model ditolak; hasil pencarian dibuka lewat nomor, URL asli ditampilkan di pop-up izin |
+| Bisa di-undo | Hapus file = pindah ke Recycle Bin |
+| Audit | Semua aksi + keputusan pengguna tercatat di database lokal |
 
 ## Struktur
-```
 hermano/
-├── .env.example      -> copy jadi .env, isi API key
-├── config.py         -> semua setting
-├── approval.py       -> gerbang izin (kamu yang mutusin)
-├── brain.py          -> otak: Claude + tool calling
-├── tools.py          -> tangan: semua aksi + level risiko
-├── memory.py         -> ingatan: obrolan, catatan, audit
-├── ears.py           -> telinga: rekam sampai diam + Whisper
-├── mouth.py          -> mulut: TTS (offline / suara Indonesia natural)
-├── wake_word.py      -> deteksi "jarvis" / custom "hermano"
-├── main.py           -> jalankan ini
-└── start_hermano.bat -> launcher Windows
-```
+|-- gui.py -> aplikasi (tampilan ala ChatGPT)
+|-- main.py -> alur percakapan + mode teks (cadangan)
+|-- brain.py -> otak: Ollama / Claude + tool calling + satpam
+|-- tools.py -> semua aksi, level risiko, mode waspada, verifikasi
+|-- approval.py -> gerbang izin
+|-- security.py -> modul keamanan (Windows Defender + heuristik)
+|-- web.py -> pencarian web & berita, baca halaman
+|-- docs.py -> cari file, baca PDF/DOCX/PPTX
+|-- reminders.py -> pengingat tahan restart
+|-- briefing.py -> briefing harian
+|-- chats.py -> riwayat chat (sidebar)
+|-- memory.py -> database lokal: catatan, audit, pengingat
+|-- paths.py -> deteksi Desktop/Dokumen/Downloads asli (termasuk OneDrive)
+|-- config.py -> semua setting (dibaca dari .env)
+|-- hermano.ico/png -> ikon aplikasi
+`-- start_hermano_gui.bat
 
-## 0. Pilih otak (`BRAIN_BACKEND` di `.env`)
-| Backend | Biaya | Internet | Kecerdasan |
-|---|---|---|---|
-| `ollama` (default) | Gratis | Gak perlu | Cukup, model kecil kadang salah pilih tool |
-| `claude` | Bayar per pemakaian (saldo API) | Perlu | Jauh lebih pintar |
+Data pribadi (`.env`, `memory_data/`) **tidak** ikut ke Git.
 
-Ganti kapan aja cukup ubah satu baris di `.env`, tools & gerbang izin tetap sama.
+## Instalasi (Windows)
 
-### Setup Ollama (otak lokal)
-1. Download & install dari **https://ollama.com/download** (pilih Windows)
-2. Setelah install, Ollama jalan otomatis di background (ada ikon llama di taskbar)
-3. Buka terminal, download modelnya (sekali aja, ±4,7GB untuk 7b):
-   ```bash
-   ollama pull qwen2.5:7b
-   ```
-   RAM cuma 8GB? Pakai `ollama pull qwen2.5:3b` lalu set `OLLAMA_MODEL=qwen2.5:3b` di `.env`.
-4. Tes modelnya langsung: `ollama run qwen2.5:7b` → ketik "halo" → `/bye` untuk keluar
+1. Install **Python 3.11** dan **Ollama** (https://ollama.com/download).
+2. Download model:
+ollama pull qwen2.5:14b
+ollama pull qwen2.5:7b
 
-## 1. Setup project
-```bash
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
+3. Siapkan project:
+py -3.11 -m venv venv
+.\venv\Scripts\python.exe -m pip install -r requirements.txt
 copy .env.example .env
-```
-Buka `.env`, cek `BRAIN_BACKEND`, `OLLAMA_MODEL`, dan `USER_NAME`.
-(Kalau pakai Claude: isi `ANTHROPIC_API_KEY` dari console.anthropic.com.)
 
-## 2. Tes otak
-```bash
-python brain.py
-```
-Kalau Hermano bisa jawab, otaknya aman.
+4. Isi `.env` minimal:
+BRAIN_BACKEND=ollama
+OLLAMA_MODEL=qwen2.5:14b
+USER_NAME=NamaKamu
 
-## 3. Mode teks + tools
-```bash
-python main.py text
-```
-Coba: `jam berapa?`, `cek baterai laptop`, `bukain notepad`, `ingat ya project aktif gw TrashChain`,
-`ingetin gw 5 menit lagi minum`, `bikin folder test di desktop` (ini bakal minta izin).
+5. Jalankan: `.\venv\Scripts\python.exe gui.py`, atau double-click `start_hermano_gui.bat`.
 
-## 4. Tes telinga & mulut
-```bash
-python ears.py
-python mouth.py
-```
-Whisper download model ±150MB saat pertama kali. **Tidak butuh ffmpeg.**
-Kalau suaranya logat Inggris, set `TTS_ENGINE=edge` di `.env` (butuh internet, suara Indonesia natural).
+Mode teks (tanpa jendela): `.\venv\Scripts\python.exe main.py text`
 
-## 5. Mode suara penuh
-```bash
-python main.py voice
-```
-Alur: tekan Enter → bilang perintah → Hermano jawab → kamu bisa langsung lanjut ngomong
-(mode percakapan) → diam beberapa detik atau bilang "standby" untuk berhenti.
+## Setting penting (.env)
 
-### Wake word (opsional)
-1. Daftar gratis di https://console.picovoice.ai, isi `PICOVOICE_ACCESS_KEY`
-2. Set `ACTIVATION=wake_word` → panggil "Jarvis"
-3. Custom "Hermano": bikin di dashboard Porcupine, download `.ppn` (Windows), taruh di folder
-   project, isi `WAKE_WORD_PATH=nama_file.ppn`
-
-> Pakai wake word = orang lain / video di sekitar juga bisa manggil Hermano. Karena itu
-> `APPROVAL_METHOD=keyboard` direkomendasikan supaya aksi berisiko tetap harus lewat kamu.
-
-## 6. Auto-start pas laptop nyala
-1. `Win + R` → `shell:startup` → Enter
-2. Taruh **shortcut** ke `start_hermano.bat` di folder itu
-3. (Opsional) klik kanan shortcut → Properties → Run: **Minimized**
-
-Jangan pakai `pythonw`: jendela terminal dibutuhkan untuk tombol Enter dan persetujuan y/n.
-
-## Fitur opsional
-- **Mute/unmute volume**: butuh `nircmd.exe` (nirsoft.net), taruh di `C:\Windows` atau folder di PATH.
-
-## Nambah tool baru
-1. Tambah definisi di `TOOL_DEFINITIONS` (`tools.py`)
-2. Bikin method `_t_<nama_tool>` di `ToolExecutor` yang return `(hasil, decision)`
-3. Tentukan risikonya: pakai `self._allowed(SAFE, ...)` atau `self._allowed(CONFIRM, ...)`
+| Setting | Fungsi |
+|---|---|
+| `OLLAMA_MODEL` / `OLLAMA_MODEL_BATTERY` | Model saat dicas / saat baterai |
+| `OLLAMA_AUTO_MODEL` | `true` = ganti model otomatis sesuai daya |
+| `STRICT_MODE` | `true` = semua aksi (termasuk buka aplikasi/website) wajib izin |
+| `BRIEFING_TOPICS` | Topik berita briefing, dipisah `;` |
+| `SECURITY_MONITOR` / `SECURITY_CHECK_MINUTES` | Penjaga Defender otomatis |
 
 ## Troubleshooting
+
 | Masalah | Solusi |
 |---|---|
-| "Gak bisa nyambung ke Ollama" | Buka aplikasi Ollama (cek ikon llama di taskbar) |
-| "Model belum di-download" | `ollama pull <nama_model>` sesuai `OLLAMA_MODEL` |
-| Jawaban lokal lambat banget | Pakai `qwen2.5:3b`, tutup aplikasi berat, atau turunkan `OLLAMA_NUM_CTX=4096` |
-| Model lokal salah pilih tool / ngaco | Normal untuk model kecil. Coba `qwen2.5:7b` / `llama3.1:8b`, atau pakai Claude |
-| Saldo Claude habis | Isi di console.anthropic.com, atau `BRAIN_BACKEND=ollama` |
-| API key error | Pastikan file bernama `.env` (bukan `_env` / `.env.example`) |
-| Whisper lambat | `WHISPER_MODEL=tiny` |
-| Hermano gak nangkep suara | Ruangan bising → jalankan ulang biar kalibrasi mic ulang, cek izin mic di Windows |
-| Perintah kepotong | Ngomong tanpa jeda panjang; jeda >1,2 detik dianggap selesai |
-| Model error 404 | Ganti `MODEL_NAME` di `.env` ke model yang tersedia di akun kamu |
+| "Gak bisa nyambung ke Ollama" | Buka aplikasi Ollama (ikon llama di taskbar) |
+| Jawaban sangat lambat | Colok charger + mode Performance (GPU laptop dibatasi saat baterai) |
+| Model ngaco setelah baca dokumen panjang | Klik **Chat baru**, lalu minta per bagian (misal "rangkum halaman 5-8") |
+| Pencarian web hasilnya tidak relevan | Matikan VPN (mis. Cloudflare WARP) lalu coba lagi |
+| Error di aplikasi | Lihat `memory_data/gui_error.log` |
 
-**Keamanan:** jangan pernah upload `.env` ke GitHub atau share ke orang. `.gitignore` sudah disiapkan.
+## Catatan
+
+Fitur suara (mic & speaker) sengaja **tidak** dipasang: perintah suara bisa dipicu orang lain
+atau suara dari video, terlalu berisiko untuk asisten yang bisa mengontrol laptop.
