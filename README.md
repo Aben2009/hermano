@@ -5,7 +5,7 @@ Hermano bisa mengontrol laptop, mencari info di internet, membaca dokumen, meman
 dan memasang pengingat, tapi **setiap aksi berisiko tetap harus disetujui pemiliknya**.
 
 > Dibangun sebagai proyek belajar AI & cybersecurity. Kode dikembangkan dengan bantuan AI
-> (Claude) sebagai mentor; desain, pengujian, debugging, dan keputusan dilakukan sendiri.
+> (Claude) sebagai alat pengujian, debugging, dan keputusan dilakukan sendiri.
 
 ## Fitur
 
