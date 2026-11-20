@@ -20,6 +20,7 @@ dan memasang pengingat, tapi **setiap aksi berisiko tetap harus disetujui pemili
 | Pengingat | Tersimpan di database, tetap ada walau Hermano ditutup; yang terlewat diberitahukan |
 | Briefing harian | Keamanan, laptop, internet, pengingat, berita, dan ringkasan aksi kemarin |
 | Riwayat aksi | Semua yang pernah dilakukan Hermano, diambil dari catatan audit asli |
+| Kepribadian saudara | "Hermano" artinya saudara: ngobrol santai pakai gw/lu, dengerin dulu pas curhat, jujur kalau rencana kurang oke, tapi tetap terbuka bahwa dia AI |
 
 ## Lapisan keamanan
 
